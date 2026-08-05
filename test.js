@@ -15,14 +15,40 @@ const muscleGroups = [
     "Abs"
 ];
 
+const previousWeek = {
+
+    Monday:["Chest","Back"],
+
+    Tuesday:["Legs","Shoulders"],
+
+    Wednesday:["Chest","Abs"],
+
+    Thursday:["Back","Biceps"],
+
+    Friday:["Legs","Triceps"],
+
+    Saturday:["Chest","Shoulders"]
+
+};
+
+const previousWeekSINGLE = {
+    Monday: ["Chest"],
+    Tuesday: ["Back"],
+    Wednesday: ["Shoulders"],
+    Thursday: ["Biceps"],
+    Friday: ["Triceps"],
+    Saturday: ["Legs"],
+    Sunday: ["Abs"]
+};
+
 const priorities = {
-    Chest: 1,
+    Chest: 7,
     Back: 6,
     Shoulders: 5,
     Biceps: 4,
     Triceps: 3,
     Legs: 2,
-    Abs: 7
+    Abs: 1
 };
 
 const workoutDays = [
@@ -37,7 +63,7 @@ const workoutDays = [
 
 const dayOffs = ["Sunday","Monday"];
 
-const musclesPerDay = 2;
+const musclesPerDay = 1;
 
 const recoveryGap = 1;
 
@@ -107,7 +133,7 @@ combinations.sort(()=>Math.random()-0.5);
 
 // ---------------------- VALIDATION -------------------------
 
-function isValid(combo,schedule){
+function isValid(combo,schedule,dayName){
 
     // Recovery
 
@@ -147,6 +173,26 @@ function isValid(combo,schedule){
             return false;
 
     }
+
+    if(previousWeek[dayName]){
+
+    const current =
+        [...combo]
+        .sort()
+        .join(",");
+
+    const previous =
+        [...previousWeek[dayName]]
+        .sort()
+        .join(",");
+
+    if(current===previous){
+          console.log(
+            `Rejected ${dayName}: ${current} (same as previous week)`
+        );
+        return false;
+    }
+}
 
     return true;
 
@@ -197,6 +243,74 @@ function calculateScore(schedule){
 
 // ---------------------- BACKTRACKING -------------------------
 
+// FOR SINGLE MUSCLE
+function solveSingle(schedule) {
+
+    // Copy all muscles
+    const availableMuscles = [...muscleGroups];
+
+    // Shuffle so every execution is different
+    availableMuscles.sort(() => Math.random() - 0.5);
+
+    for (const day of workoutDays) {
+
+        // Leave day
+        if (dayOffs.includes(day)) {
+
+            schedule.push({
+                day,
+                leave: true
+            });
+
+            continue;
+        }
+
+        let assigned = false;
+
+        // Try every remaining muscle
+        for (let i = 0; i < availableMuscles.length; i++) {
+
+            const muscle = availableMuscles[i];
+
+            // Check previous week's same weekday
+            if (previousWeekSINGLE[day]) {
+
+                if (previousWeekSINGLE[day][0] === muscle)
+                    continue;
+
+            }
+
+            // Assign
+            schedule.push({
+                day,
+                combo: [muscle],
+                leave: false
+            });
+
+            // Remove so it never appears again this week
+            availableMuscles.splice(i, 1);
+
+            assigned = true;
+            break;
+        }
+
+        if (!assigned) {
+
+            console.log(`No valid muscle available for ${day}`);
+            return false;
+
+        }
+
+    }
+
+    bestSchedule = deepCopy(schedule);
+    bestScore = 0;
+
+    return true;
+}
+
+
+// FOR DOUBLE MUSCLE 
 function solve(dayIndex, schedule) {
 
     // Stop if we've already explored enough schedules
@@ -266,7 +380,15 @@ function solve(dayIndex, schedule) {
 
 const schedule = [];
 
-solve(0, schedule);
+if (musclesPerDay === 1) {
+
+   solveSingle(schedule);
+
+} else {
+
+    solve(0, schedule);
+
+}
 
 
 // ---------------------- OUTPUT -------------------------
